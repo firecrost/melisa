@@ -1,0 +1,377 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sana Bir Sorum Var...</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #1a1a2e;
+            overflow: hidden;
+            font-family: 'Poppins', sans-serif;
+            color: #fff;
+            cursor: none;
+        }
+
+        .container {
+            text-align: center;
+            position: relative;
+            z-index: 10;
+        }
+
+        h1 {
+            font-size: 3.5em;
+            opacity: 0;
+            transform: translateY(50px);
+            animation: fadeIn 2s ease-in forwards;
+            text-shadow: 0 0 10px rgba(255, 105, 180, 0.8);
+        }
+
+        .proposal {
+            display: none;
+            font-size: 2em;
+            margin: 20px 0;
+            padding: 0 20px;
+            animation: slideIn 1.5s ease-in forwards;
+            line-height: 1.4;
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+        }
+
+        .buttons {
+            margin-top: 30px;
+            display: none;
+            position: relative;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
+        button {
+            padding: 15px 40px;
+            font-size: 1.3em;
+            margin: 10px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: transform 0.3s, background 0.3s;
+            font-family: 'Poppins', sans-serif;
+            position: relative;
+        }
+
+        #yesBtn {
+            background: #ff6b6b;
+            color: #fff;
+            box-shadow: 0 0 15px rgba(255, 107, 107, 0.8);
+        }
+
+        #yesBtn:hover {
+            transform: scale(1.1);
+            background: #ff4d4d;
+        }
+
+        #yesBtn.centered {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        #noBtn {
+            background: #ccc;
+            color: #333;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+
+        #noBtn.moving {
+            transition: transform 0.3s ease;
+            transform: translate(calc(80vw * var(--x)), calc(80vh * var(--y)));
+        }
+
+        /* Stars background */
+        .stars {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: #fff;
+            border-radius: 50%;
+            animation: twinkle 3s infinite;
+        }
+
+        .stars:nth-child(odd) { animation-duration: 2s; }
+        .stars:nth-child(even) { animation-duration: 4s; }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; transform: scale(0.5); }
+            50% { opacity: 1; transform: scale(1); }
+        }
+
+        /* Clouds */
+        .cloud {
+            position: absolute;
+            width: 200px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 100px;
+            animation: drift 30s linear infinite;
+        }
+
+        .cloud::before, .cloud::after {
+            content: '';
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+        }
+
+        .cloud::before {
+            width: 100px;
+            height: 100px;
+            top: -50px;
+            left: 50px;
+        }
+
+        .cloud::after {
+            width: 80px;
+            height: 80px;
+            top: -40px;
+            left: 100px;
+        }
+
+        @keyframes drift {
+            from { transform: translateX(-100vw); }
+            to { transform: translateX(100vw); }
+        }
+
+        /* Hearts */
+        .heart {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: #ff4d4d;
+            transform: rotate(-45deg);
+            animation: heartFloat 6s ease-out forwards;
+            opacity: 0.8;
+        }
+
+        .heart::before, .heart::after {
+            content: '';
+            width: 40px;
+            height: 40px;
+            background: #ff4d4d;
+            border-radius: 50%;
+            position: absolute;
+        }
+
+        .heart::before { top: -20px; left: 0; }
+        .heart::after { left: 20px; top: 0; }
+
+        @keyframes heartFloat {
+            0% { transform: translateY(0) rotate(-45deg); opacity: 0.8; }
+            100% { transform: translateY(-100vh) rotate(-45deg); opacity: 0; }
+        }
+
+        /* Cursor trail */
+        .trail {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: rgba(255, 182, 193, 0.8);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: fadeTrail 0.5s ease-out forwards;
+        }
+
+        @keyframes fadeTrail {
+            to { opacity: 0; transform: scale(0); }
+        }
+
+        /* Petals for confetti */
+        .petal {
+            position: absolute;
+            width: 10px;
+            height: 20px;
+            background: #ff9999;
+            border-radius: 50%;
+            animation: fall 5s linear forwards;
+        }
+
+        @keyframes fall {
+            0% { transform: translateY(-100vh) rotate(0deg); }
+            100% { transform: translateY(100vh) rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Sana Bir Sorum Var...</h1>
+        <p class="proposal" id="proposalText">Knk, seninle geçirdiğim her an zaten bir film gibi... Ama şimdi bu filmin başrolü olmaya ne dersin? Benimle çıkar mısın? 💖</p>
+        <div class="buttons" id="buttons">
+            <button id="yesBtn">Evet! 😊</button>
+            <button id="noBtn">Hayır 😔</button>
+        </div>
+    </div>
+
+    <!-- Background elements -->
+    <div class="stars" style="left: 10%; top: 20%;"></div>
+    <div class="stars" style="left: 20%; top: 50%;"></div>
+    <div class="stars" style="left: 30%; top: 30%;"></div>
+    <div class="stars" style="left: 40%; top: 70%;"></div>
+    <div class="stars" style="left: 50%; top: 10%;"></div>
+    <div class="stars" style="left: 60%; top: 40%;"></div>
+    <div class="stars" style="left: 70%; top: 60%;"></div>
+    <div class="stars" style="left: 80%; top: 25%;"></div>
+    <div class="stars" style="left: 90%; top: 45%;"></div>
+    <div class="cloud" style="top: 20%; animation-delay: 0s;"></div>
+    <div class="cloud" style="top: 40%; animation-delay: 10s;"></div>
+    <div class="cloud" style="top: 60%; animation-delay: 20s;"></div>
+
+    <!-- Audio -->
+    <audio id="bgMusic" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" loop autoplay></audio>
+
+    <script>
+        const h1 = document.querySelector('h1');
+        const proposal = document.getElementById('proposalText');
+        const buttons = document.getElementById('buttons');
+        const yesBtn = document.getElementById('yesBtn');
+        const noBtn = document.getElementById('noBtn');
+        const bgMusic = document.getElementById('bgMusic');
+
+        let noBtnClickCount = 0;
+        const maxNoClicks = 5;
+
+        // Auto transition to proposal
+        setTimeout(() => {
+            h1.style.display = 'none';
+            proposal.style.display = 'block';
+            buttons.style.display = 'flex';
+            bgMusic.play().catch(e => console.log("Müzik hatası:", e));
+        }, 3000);
+
+        // No button escape logic
+        noBtn.addEventListener('click', () => {
+            if (noBtnClickCount < maxNoClicks) {
+                const x = (Math.random() - 0.5) * 0.8;
+                const y = (Math.random() - 0.5) * 0.8;
+                noBtn.classList.add('moving');
+                noBtn.style.setProperty('--x', x);
+                noBtn.style.setProperty('--y', y);
+                noBtnClickCount++;
+                if (noBtnClickCount === maxNoClicks) {
+                    noBtn.style.display = 'none';
+                    yesBtn.classList.add('centered');
+                }
+            }
+        });
+
+        // Yes button response
+        yesBtn.addEventListener('click', () => {
+            proposal.innerHTML = 'Yaşasın! Seninle geçireceğim her an için sabırsızlanıyorum! 💕 Bu bizim hikayemizin başlangıcı!';
+            buttons.style.display = 'none';
+            createConfetti();
+            createPetals();
+        });
+
+        // Cursor trail
+        document.addEventListener('mousemove', (e) => {
+            const trail = document.createElement('div');
+            trail.className = 'trail';
+            trail.style.left = `${e.clientX}px`;
+            trail.style.top = `${e.clientY}px`;
+            document.body.appendChild(trail);
+            setTimeout(() => trail.remove(), 500);
+        });
+
+        // Confetti
+        function createConfetti() {
+            for (let i = 0; i < 100; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'heart';
+                confetti.style.left = `${Math.random() * 100}%`;
+                confetti.style.top = `${Math.random() * 100}%`;
+                confetti.style.background = `hsl(${Math.random() * 360}, 70%, 70%)`;
+                confetti.style.animation = `heartFloat ${3 + Math.random() * 2}s ease-out`;
+                document.body.appendChild(confetti);
+                setTimeout(() => confetti.remove(), 5000);
+            }
+        }
+
+        // Petals
+        function createPetals() {
+            for (let i = 0; i < 50; i++) {
+                const petal = document.createElement('div');
+                petal.className = 'petal';
+                petal.style.left = `${Math.random() * 100}%`;
+                petal.style.animationDelay = `${Math.random() * 2}s`;
+                document.body.appendChild(petal);
+                setTimeout(() => petal.remove(), 6000);
+            }
+        }
+
+        // Random hearts
+        setInterval(() => {
+            const heart = document.createElement('div');
+            heart.className = 'heart';
+            heart.style.left = `${Math.random() * 100}%`;
+            document.body.appendChild(heart);
+            setTimeout(() => heart.remove(), 6000);
+        }, 2000);
+    </script>
+</body>
+</html>
